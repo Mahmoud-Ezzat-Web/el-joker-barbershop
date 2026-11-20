@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111214">
+  <title>صالون الجوكر | El Joker Barbershop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="صالون الجوكر - الصفحة الرئيسية">
+        <span class="brand-mark" aria-hidden="true">J</span>
+        <span><strong>الجوكر</strong><small>EL JOKER BARBERSHOP</small></span>
+      </a>
+      <div class="header-actions">
+        <span class="sync-status" id="sync-status" role="status">جارٍ الاتصال...</span>
+        <span class="view-label" id="view-label">وضع العميل</span>
+        <button class="button button-outline button-small" id="role-button" type="button">دخول الحلاق / الإدارة</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero card">
+        <div class="hero-copy">
+          <span class="eyebrow">حلاقة على أصولها</span>
+          <h1>صالون الجوكر</h1>
+          <p>إطلالة تليق بك، وخدمة تليق بالجوكر.</p>
+          <div class="rating-line"><span class="stars" aria-label="5 نجوم">★★★★★</span><strong id="average-rating">4.9</strong><span id="rating-count">(0 تقييم)</span></div>
+        </div>
+        <div class="hero-art" aria-hidden="true"><span class="hero-pole"></span><span class="hero-scissors">✂</span></div>
+      </section>
+
+      <section class="status-card card" aria-live="polite">
+        <div class="status-main">
+          <span class="status-dot" id="status-dot"></span>
+          <div><h2 id="status-title">جارٍ تحميل حالة الصالون</h2><p id="status-message"></p></div>
+        </div>
+        <div class="status-details">
+          <span><b>مواعيد العمل</b><span id="hours-display"></span></span>
+          <span><b>فترة الراحة</b><span id="break-display"></span></span>
+        </div>
+      </section>
+
+      <section id="customer-view">
+        <div class="section-heading">
+          <div><span class="eyebrow">خدماتنا</span><h2>اختار اللي يناسبك</h2></div>
+          <span class="muted">الخدمات والأسعار بالجنيه المصري</span>
+        </div>
+        <div class="services-grid" id="services-list"></div>
+        <div class="summary-spacer"></div>
+        <aside class="summary-bar card" aria-live="polite">
+          <div class="summary-item"><span>الوقت الإجمالي</span><strong><span id="total-duration">0</span> <small>دقيقة</small></strong></div>
+          <div class="summary-item"><span>إجمالي التكلفة</span><strong><span id="total-price">0</span> <small>ج.م</small></strong></div>
+          <button class="button button-primary" id="find-slots" type="button">اختار موعدك <span aria-hidden="true">←</span></button>
+        </aside>
+
+        <section class="section-block" id="booking-section">
+          <div class="section-heading">
+            <div><span class="eyebrow">خطوتك الجاية</span><h2>المواعيد المتاحة اليوم</h2></div>
+            <span class="muted" id="today-label"></span>
+          </div>
+          <div class="closed-notice hidden" id="booking-closed"></div>
+          <p class="helper-text" id="slots-help">اختار خدمة واحدة على الأقل علشان نعرض لك المواعيد المناسبة.</p>
+          <div class="slots-grid" id="slots-list"></div>
+          <form class="booking-form card hidden" id="booking-form">
+            <div class="form-heading"><div><span class="eyebrow">تأكيد الموعد</span><h3>بيانات الحجز</h3></div><span class="selected-time" id="selected-time"></span></div>
+            <div class="form-grid">
+              <label>اسمك بالكامل<input id="customer-name" name="name" autocomplete="name" required maxlength="70" placeholder="مثال: أحمد محمد"></label>
+              <label>رقم الموبايل<input id="customer-phone" name="phone" inputmode="tel" autocomplete="tel" required maxlength="16" placeholder="01xxxxxxxxx"></label>
+            </div>
+            <p class="form-error hidden" id="booking-error" role="alert"></p>
+            <button class="button button-primary button-wide" type="submit">تأكيد الحجز</button>
+          </form>
+          <section class="ticket card hidden" id="booking-ticket" aria-live="polite"></section>
+        </section>
+
+        <section class="section-block">
+          <div class="section-heading"><div><span class="eyebrow">على الدور</span><h2>طابور اليوم</h2></div><span class="live-label"><i></i> مباشر</span></div>
+          <div class="table-wrap">
+            <table><thead><tr><th>الدور</th><th>الاسم</th><th>الموعد</th><th>المدة</th><th>الحالة</th></tr></thead><tbody id="public-queue"></tbody></table>
+          </div>
+          <p class="empty-state hidden" id="queue-empty">لا توجد حجوزات قادمة اليوم. كن أول من يحجز!</p>
+        </section>
+
+        <section class="section-block">
+          <div class="section-heading"><div><span class="eyebrow">كلام يهمنا</span><h2>آراء عملائنا</h2></div></div>
+          <div class="reviews-grid" id="reviews-list"></div>
+          <form class="review-form card" id="review-form">
+            <div><span class="eyebrow">جربت الخدمة؟</span><h3>شاركنا رأيك</h3></div>
+            <label class="rating-picker">تقييمك
+              <select id="review-rating" aria-label="اختر عدد النجوم"><option value="5">★★★★★ - ممتاز</option><option value="4">★★★★☆ - جيد جداً</option><option value="3">★★★☆☆ - جيد</option><option value="2">★★☆☆☆ - مقبول</option><option value="1">★☆☆☆☆ - يحتاج تحسين</option></select>
+            </label>
+            <label>تعليقك (اختياري)<textarea id="review-comment" maxlength="300" rows="3" placeholder="احكيلنا عن تجربتك..."></textarea></label>
+            <button class="button button-outline" type="submit">إرسال التقييم</button>
+            <p class="form-error hidden" id="review-error" role="alert"></p>
+          </form>
+        </section>
+      </section>
+
+      <section class="admin-view hidden" id="admin-view">
+        <div class="admin-welcome"><div><span class="eyebrow">لوحة التحكم</span><h2>أهلاً يا جوكر 👋</h2><p>من هنا تقدر تدير يومك وحجوزاتك.</p></div><button class="button button-outline" id="preview-customer" type="button">معاينة كعميل / تسجيل خروج</button></div>
+        <section class="section-block">
+          <div class="section-heading"><div><span class="eyebrow">حالة المحل</span><h2>إدارة استقبال الحجوزات</h2></div></div>
+          <div class="control-grid card">
+            <button class="button button-success" id="open-shop" type="button">فتح المحل وبدء استقبال الحجوزات</button>
+            <button class="button button-danger" id="emergency-close" type="button">إغلاق لظرف طارئ</button>
+            <button class="button button-muted" id="holiday-close" type="button">إغلاق - إجازة رسمية</button>
+            <label class="emergency-reason hidden" id="reason-wrap">سبب الإغلاق (اختياري)<input id="emergency-reason-input" maxlength="100" placeholder="مثال: ظرف طارئ"></label>
+          </div>
+          <form class="settings-form card" id="settings-form">
+            <h3>إعدادات مواعيد العمل والراحة</h3>
+            <div class="form-grid settings-grid">
+              <label>يفتح الساعة<input id="open-time" type="time" required></label>
+              <label>يغلق الساعة<input id="close-time" type="time" required></label>
+              <label>بداية الراحة<input id="break-start" type="time" required></label>
+              <label>نهاية الراحة<input id="break-end" type="time" required></label>
+              <label>رمز PIN الجديد<input id="new-pin" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" placeholder="اتركه فارغاً دون تغيير"></label>
+            </div>
+            <p class="muted">لإيقاف فترة الراحة، اجعل بدايتها ونهايتها متساويتين.</p>
+            <p class="form-error hidden" id="settings-error" role="alert"></p>
+            <button class="button button-primary" type="submit">حفظ الإعدادات</button>
+          </form>
+        </section>
+
+        <section class="section-block">
+          <div class="section-heading"><div><span class="eyebrow">إدارة اليوم</span><h2>الحجوزات الحالية</h2></div><span class="live-label"><i></i> تتحدث تلقائياً</span></div>
+          <div class="table-wrap">
+            <table><thead><tr><th>العميل / التواصل</th><th>الخدمات</th><th>المدة</th><th>السعر</th><th>الموعد</th><th>الحالة والإجراء</th></tr></thead><tbody id="admin-queue"></tbody></table>
+          </div>
+          <p class="empty-state hidden" id="admin-queue-empty">لا توجد حجوزات لليوم حتى الآن.</p>
+        </section>
+
+        <section class="section-block">
+          <div class="section-heading"><div><span class="eyebrow">الجرد والمحاسبة</span><h2>تقارير الإيرادات</h2></div><button class="button button-outline button-small" id="print-report" type="button">طباعة / تصدير التقرير</button></div>
+          <div class="filter-row">
+            <label>الفترة
+              <select id="report-filter">
+                <option value="today">اليوم</option><option value="yesterday">أمس</option><option value="week">آخر 7 أيام</option><option value="month">هذا الشهر</option><option value="custom">فترة مخصصة</option>
+              </select>
+            </label>
+            <div class="date-range hidden" id="date-range"><label>من<input id="date-from" type="date"></label><label>إلى<input id="date-to" type="date"></label></div>
+          </div>
+          <div class="kpi-grid">
+            <article class="kpi-card card"><span>الزبائن المكتملون</span><strong id="report-count">0</strong><small>عميل</small></article>
+            <article class="kpi-card card"><span>إجمالي التحصيل</span><strong id="report-revenue">0</strong><small>جنيه مصري</small></article>
+          </div>
+          <div class="table-wrap report-table">
+            <table><thead><tr><th>التاريخ</th><th>اسم العميل</th><th>رقم الهاتف</th><th>الخدمات</th><th>المبلغ المحصّل</th></tr></thead><tbody id="report-rows"></tbody></table>
+          </div>
+          <p class="empty-state hidden" id="report-empty">لا توجد عمليات مكتملة في الفترة المحددة.</p>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer"><span>© <span id="year"></span> صالون الجوكر</span><div><button class="text-button" id="qr-open" type="button">اعرض QR Code</button><span>•</span><a href="https://wa.me/" target="_blank" rel="noopener">تواصل معنا</a></div></footer>
+  </div>
+
+  <div class="modal-backdrop hidden" id="pin-modal" role="dialog" aria-modal="true" aria-labelledby="pin-title">
+    <form class="modal card" id="pin-form">
+      <button class="modal-close" id="pin-close" type="button" aria-label="إغلاق">×</button>
+      <span class="eyebrow">منطقة الحلاق</span><h2 id="pin-title">أدخل رمز الدخول</h2><p class="muted">رمز PIN مكوّن من 4 إلى 8 أرقام.</p>
+      <label>رمز PIN<input id="pin-input" type="password" inputmode="numeric" pattern="[0-9]{4,8}" required autocomplete="current-password"></label>
+      <p class="form-error hidden" id="pin-error" role="alert"></p>
+      <button class="button button-primary button-wide" type="submit">دخول</button>
+    </form>
+  </div>
+  <div class="modal-backdrop hidden" id="qr-modal" role="dialog" aria-modal="true" aria-labelledby="qr-title">
+    <div class="modal card qr-dialog">
+      <button class="modal-close" id="qr-close" type="button" aria-label="إغلاق">×</button>
+      <span class="eyebrow">امسح واحجز</span><h2 id="qr-title">رابط صالون الجوكر</h2>
+      <img id="qr-image" alt="رمز QR لرابط الصفحة">
+      <p class="muted" id="page-url"></p>
+      <p class="qr-note">للتجربة المحلية قد يظهر رابط الملف على جهازك فقط. شارك ملفات التطبيق مع عملائك أو ارفعه إلى استضافة ثابتة للحصول على رابط عام.</p>
+      <button class="button button-outline button-wide" id="copy-url" type="button">نسخ الرابط</button>
+    </div>
+  </div>
+  <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
