@@ -168,6 +168,16 @@ td { color: #e8e5de; }
 .qr-dialog img { display: block; width: 190px; height: 190px; margin: 17px auto 10px; padding: 8px; background: white; border-radius: 8px; }
 .qr-dialog .muted { overflow-wrap: anywhere; }
 .qr-note { color: #c7c1af; font-size: 11px; line-height: 1.8; }
+.reminder-dialog { width: min(460px, 100%); border-color: #78672d; text-align: center; }
+.reminder-dialog h2 { margin: 4px 0 10px; color: var(--gold); font-size: 30px; }
+.reminder-appointment { margin-bottom: 4px; font-size: 14px; font-weight: 700; }
+.reminder-remaining { margin-bottom: 17px; color: var(--muted); font-size: 13px; }
+.audio-unlock-banner { margin: 0 0 11px; padding: 10px 12px; border: 1px solid #8a7431; border-radius: 10px; background: #d4af3718; color: #f0dda0; font-size: 11px; line-height: 1.7; }
+.sound-test-button { margin: 0 0 16px !important; }
+.reminder-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.reminder-actions .button { min-height: 48px; font-size: 14px; }
+.reminder-actions .button-success { background: #238054; }
+.reminder-actions .button-danger { background: #a34338; }
 .toast { position: fixed; z-index: 30; bottom: 92px; left: 50%; max-width: calc(100% - 32px); padding: 11px 17px; border: 1px solid #78672d; border-radius: 10px; background: #292417; color: #fff0ba; font-size: 12px; box-shadow: 0 8px 30px #0008; transform: translateX(-50%); }
 .contact-links { display: flex; gap: 6px; }
 .contact-links a { color: var(--gold); font-size: 11px; }

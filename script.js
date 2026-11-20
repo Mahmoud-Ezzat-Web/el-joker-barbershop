@@ -54,6 +54,10 @@ const shopRef = ref(database, "jokerShop");
   let cloudReady = false;
   let cloudSeedStarted = false;
   let pinCleanupStarted = false;
+  let audioContext = null;
+  let activeReminderId = null;
+  let reminderSoundPending = false;
+  let soundAttempt = null;
   let toastTimer;
 
   function localDate(date = new Date()) {
@@ -224,6 +228,7 @@ const shopRef = ref(database, "jokerShop");
       $("#sync-status").className = "sync-status connected";
       saveState();
       renderAll();
+      checkCustomerAlerts();
     }, (error) => reportCloudError(error));
   }
   function requireCloud() {
@@ -489,11 +494,9 @@ const shopRef = ref(database, "jokerShop");
     const cancelButton = $("#cancel-own-booking");
     if (cancelButton) cancelButton.addEventListener("click", cancelOwnBooking);
   }
-  async function cancelOwnBooking() {
+  async function cancelBooking(booking) {
     if (!requireCloud()) return;
-    const booking = state.bookings.find((item) => item.id === localStorage.getItem(CUSTOMER_BOOKING_KEY));
-    if (!booking || booking.status !== "confirmed") return;
-    if (!window.confirm("هل أنت متأكد من إلغاء حجزك؟")) return;
+    if (!booking || (booking.status !== "confirmed" && booking.status !== "in_progress")) return;
     const cancelledAt = new Date().toISOString();
     try {
       await update(ref(database, `jokerShop/bookings/${booking.id}`), { status: "cancelled", cancelledAt });
@@ -507,6 +510,12 @@ const shopRef = ref(database, "jokerShop");
     saveState();
     renderAll();
     showToast("تم إلغاء حجزك وتحرير الموعد.");
+  }
+  async function cancelOwnBooking() {
+    const booking = state.bookings.find((item) => item.id === localStorage.getItem(CUSTOMER_BOOKING_KEY));
+    if (!booking || booking.status !== "confirmed") return;
+    if (!window.confirm("هل أنت متأكد من إلغاء حجزك؟")) return;
+    await cancelBooking(booking);
   }
   function renderReviews() {
     const list = [...state.reviews].sort((a, b) => b.date.localeCompare(a.date));
@@ -546,16 +555,153 @@ const shopRef = ref(database, "jokerShop");
     if (!("Notification" in window) || Notification.permission !== "default") return;
     Notification.requestPermission().catch((error) => console.warn("إذن إشعارات المتصفح لم يُمنح:", error));
   }
+  function showAudioUnlockBanner(show) {
+    $("#audio-unlock-banner").classList.toggle("hidden", !show);
+  }
+  async function playReminderSound() {
+    if (soundAttempt) return soundAttempt;
+    soundAttempt = (async () => {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) throw new Error("Web Audio API غير مدعوم في هذا المتصفح.");
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state !== "running") {
+          const resumePromise = audioContext.resume();
+          resumePromise.catch(() => {});
+          await Promise.race([
+            resumePromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error("تفعيل الصوت يحتاج إلى تفاعل من المستخدم.")), 700))
+          ]);
+        }
+        if (audioContext.state !== "running") throw new Error("الصوت محظور حتى يتفاعل المستخدم مع الصفحة.");
+        const start = audioContext.currentTime + 0.03;
+        [660, 880, 660, 990].forEach((frequency, index) => {
+          const oscillator = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          const at = start + index * 0.24;
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(frequency, at);
+          gain.gain.setValueAtTime(0.0001, at);
+          gain.gain.exponentialRampToValueAtTime(0.22, at + 0.025);
+          gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.19);
+          oscillator.connect(gain);
+          gain.connect(audioContext.destination);
+          oscillator.start(at);
+          oscillator.stop(at + 0.2);
+        });
+        reminderSoundPending = false;
+        if (activeReminderId) localStorage.removeItem(`elJoker.reminderSoundPending.${activeReminderId}`);
+        showAudioUnlockBanner(false);
+        return true;
+      } catch (error) {
+        reminderSoundPending = true;
+        if (activeReminderId) localStorage.setItem(`elJoker.reminderSoundPending.${activeReminderId}`, "true");
+        showAudioUnlockBanner(true);
+        console.info("تم تأجيل صوت تنبيه الموعد حتى تفاعل العميل مع الصفحة:", error);
+        return false;
+      } finally {
+        soundAttempt = null;
+      }
+    })();
+    return soundAttempt;
+  }
+  function handleReminderInteraction() {
+    if (!reminderSoundPending || !activeReminderId) return;
+    playReminderSound();
+  }
+  function triggerReminderEffects(booking) {
+    const effectKey = `elJoker.reminderTriggered.${booking.id}`;
+    if (localStorage.getItem(effectKey)) {
+      if (localStorage.getItem(`elJoker.reminderSoundPending.${booking.id}`)) {
+        reminderSoundPending = true;
+        showAudioUnlockBanner(true);
+      }
+      return;
+    }
+    localStorage.setItem(effectKey, "true");
+    playReminderSound();
+    if (typeof navigator.vibrate === "function") {
+      try {
+        navigator.vibrate([300, 150, 300, 150, 400]);
+      } catch (error) {
+        console.info("تعذر تشغيل اهتزاز الجهاز:", error);
+      }
+    }
+    if ("Notification" in window && Notification.permission === "granted") {
+      try {
+        new Notification("دورك قرب", { body: `موعدك ${formatTime(booking.time)}. ${reminderTimeText(booking)}` });
+      } catch (error) {
+        console.info("تعذر عرض إشعار المتصفح:", error);
+      }
+    }
+  }
+  function reminderTimeText(booking) {
+    const minutes = timeToMinutes(booking.time) - (new Date().getHours() * 60 + new Date().getMinutes());
+    if (minutes <= 0) return "موعدك الآن.";
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    return `متبقي ${hours ? `${hours} ساعة و` : ""}${rest} دقيقة.`;
+  }
+  function hideTurnReminder() {
+    $("#turn-reminder").classList.add("hidden");
+    activeReminderId = null;
+    reminderSoundPending = false;
+    showAudioUnlockBanner(false);
+  }
+  function renderTurnReminder(booking, minutesUntil) {
+    activeReminderId = booking.id;
+    $("#reminder-appointment").textContent = `موعدك اليوم الساعة ${formatTime(booking.time)}.`;
+    $("#reminder-remaining").textContent = minutesUntil <= 0
+      ? "موعدك حان الآن، أكد حضورك أو ألغِ الحجز."
+      : `متبقي على موعدك ${Math.floor(minutesUntil / 60) ? `${Math.floor(minutesUntil / 60)} ساعة و` : ""}${minutesUntil % 60} دقيقة.`;
+    $("#turn-reminder").classList.remove("hidden");
+    triggerReminderEffects(booking);
+  }
+  async function confirmOnWay() {
+    if (!requireCloud()) return;
+    const booking = state.bookings.find((item) => item.id === activeReminderId
+      && (item.status === "confirmed" || item.status === "in_progress"));
+    if (!booking) {
+      hideTurnReminder();
+      return;
+    }
+    try {
+      await update(ref(database, `jokerShop/bookings/${booking.id}`), { confirmedOnWay: true });
+    } catch (error) {
+      reportCloudError(error, "تعذر تسجيل تأكيد حضورك. حاول مرة أخرى.");
+      return;
+    }
+    booking.confirmedOnWay = true;
+    saveState();
+    hideTurnReminder();
+    showToast("تم تأكيد حضورك. مستنيينك!");
+  }
+  async function cancelReminderBooking() {
+    const booking = state.bookings.find((item) => item.id === activeReminderId);
+    if (!booking) {
+      hideTurnReminder();
+      return;
+    }
+    await cancelBooking(booking);
+    if (booking.status === "cancelled") hideTurnReminder();
+  }
   function checkCustomerAlerts() {
-    const booking = state.bookings.find((item) => item.id === localStorage.getItem(CUSTOMER_BOOKING_KEY) && item.status === "confirmed");
-    if (!booking || booking.date !== localDate()) return;
+    if (isAdmin) return;
+    const booking = state.bookings.find((item) => item.id === localStorage.getItem(CUSTOMER_BOOKING_KEY)
+      && (item.status === "confirmed" || item.status === "in_progress"));
+    if (!booking || booking.date !== localDate() || booking.confirmedOnWay) {
+      hideTurnReminder();
+      return;
+    }
     const queue = sortedTodayBookings();
     const index = queue.findIndex((item) => item.id === booking.id);
     const minutesUntil = timeToMinutes(booking.time) - (new Date().getHours() * 60 + new Date().getMinutes());
+    if (minutesUntil <= 30) renderTurnReminder(booking, minutesUntil);
+    else hideTurnReminder();
     const alertKey = `elJoker.alert.${booking.id}`;
-    let alert = "";
-    if (index >= 0 && index <= 1) alert = "يتبقى عميل واحد فقط أو أقل قبلك. استعد لموعدك!";
-    else if (minutesUntil > 0 && minutesUntil <= 30) alert = "يتبقى أقل من 30 دقيقة على موعدك. ننتظرك!";
+    const alert = index >= 0 && index <= 1 && minutesUntil > 30
+      ? "يتبقى عميل واحد فقط أو أقل قبلك. استعد لموعدك!"
+      : "";
     if (!alert || sessionStorage.getItem(alertKey) === alert) return;
     sessionStorage.setItem(alertKey, alert);
     showToast(alert);
@@ -746,6 +892,11 @@ const shopRef = ref(database, "jokerShop");
     $("#booking-form").addEventListener("submit", submitBooking);
     $("#review-form").addEventListener("submit", submitReview);
     $("#settings-form").addEventListener("submit", saveSettings);
+    $("#confirm-on-way").addEventListener("click", confirmOnWay);
+    $("#cancel-reminder-booking").addEventListener("click", cancelReminderBooking);
+    $("#test-reminder-sound").addEventListener("click", playReminderSound);
+    document.addEventListener("pointerdown", handleReminderInteraction);
+    document.addEventListener("keydown", handleReminderInteraction);
     $("#open-shop").addEventListener("click", () => changeShopStatus("open"));
     $("#holiday-close").addEventListener("click", () => changeShopStatus("holiday"));
     $("#emergency-close").addEventListener("click", () => {
