@@ -894,7 +894,6 @@ const shopRef = ref(database, "jokerShop");
     $("#settings-form").addEventListener("submit", saveSettings);
     $("#confirm-on-way").addEventListener("click", confirmOnWay);
     $("#cancel-reminder-booking").addEventListener("click", cancelReminderBooking);
-    $("#test-reminder-sound").addEventListener("click", playReminderSound);
     document.addEventListener("pointerdown", handleReminderInteraction);
     document.addEventListener("keydown", handleReminderInteraction);
     $("#open-shop").addEventListener("click", () => changeShopStatus("open"));
